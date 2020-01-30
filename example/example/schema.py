@@ -1,13 +1,16 @@
 import graphene
+from graphene_django import DjangoObjectType
 import graphql_jwt
 import users.schema
+
+from django.contrib.auth import get_user_model
 
 class Query(users.schema.Query,
             graphene.ObjectType,):
     pass
 
 
-class Mutation(# Insert other Mutations here
+class Mutation(users.schema.Mutation,
                graphene.ObjectType,):
     obtain_token = graphql_jwt.ObtainJSONWebToken.Field()
     verify_token = graphql_jwt.Verify.Field()
