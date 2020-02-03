@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from datetime import timedelta
+
+from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,7 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Add this
-    'graphene_django'
+    'graphene_django',
+    # For refresh tokens
+    'graphql_jwt.refresh_token.apps.RefreshTokenConfig',
+
+    'users',
 ]
 
 MIDDLEWARE = [
@@ -106,8 +114,13 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTHENTICATION_BACKENDS = [
     # Graphql_jwt backend
     'graphql_jwt.backends.JSONWebTokenBackend',
+    # Custom auth backend
+    'example.auth_backend.AuthBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# Auth user model for custom user model
+AUTH_USER_MODEL = "users.User"
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
@@ -135,4 +148,27 @@ GRAPHENE = {
     'MIDDLEWARE': [
         'graphql_jwt.middleware.JSONWebTokenMiddleware',
     ],
+}
+
+
+def custom_get_user_by_natural_key(username):
+    User = get_user_model()
+
+    try:
+        return User.objects.get(
+            Q(username__iexact=username) | Q(email__iexact=username)
+        )
+    except User.DoesNotExist:
+        return None
+
+
+GRAPHQL_JWT = {
+    'JWT_VERIFY_EXPIRATION': True,
+    'JWT_LONG_RUNNING_REFRESH_TOKEN': True,
+    'JWT_EXPIRATION_DELTA': timedelta(minutes=15),
+    'JWT_REFRESH_EXPIRATION_DELTA': timedelta(days=7),
+    'JWT_GET_USER_BY_NATURAL_KEY_HANDLER': custom_get_user_by_natural_key,
+    'JWT_COOKIE_DOMAIN': '.mydomain.io',
+    # 'JWT_HIDE_TOKEN_FIELDS': True,
+    'JWT_CSRF_ROTATION': True,
 }
